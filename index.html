@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bitácora de Gastos — Viaje</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Bitácora">
+<meta name="theme-color" content="#f4eee2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Sometype+Mono:ital,wght@0,400..700;1,400&display=swap" rel="stylesheet">
@@ -421,6 +427,15 @@
           <label class="f" style="margin-bottom:7px;">Categoría</label>
           <div class="cats" id="cats"></div>
         </div>
+        <label class="f" id="paraWrap" hidden>Para quién
+          <select class="ctrl" id="para">
+            <option value="">— sin asignar —</option>
+            <option value="Martin">Martin</option>
+            <option value="Dani">Dani</option>
+            <option value="Remo">Remo</option>
+            <option value="Juana">Juana</option>
+          </select>
+        </label>
         <button class="btn-add" type="submit">Sellar gasto ◉</button>
       </form>
 
@@ -471,12 +486,20 @@
   const KEY = "gastos-viaje-v1";
 
   const CATEGORIES = [
-    { id: "comida",      label: "Comida",      ico: "🍜" },
-    { id: "alojamiento", label: "Alojamiento", ico: "🛏️" },
-    { id: "transporte",  label: "Transporte",  ico: "🚆" },
-    { id: "actividades", label: "Actividades", ico: "🎟️" },
-    { id: "compras",     label: "Compras",     ico: "🛍️" },
-    { id: "otros",       label: "Otros",       ico: "📌" },
+    { id: "comida",       label: "Comida",       ico: "🍜" },
+    { id: "alojamiento",  label: "Alojamiento",  ico: "🛏️" },
+    { id: "vuelos",       label: "Vuelos",       ico: "✈️" },
+    { id: "auto",         label: "Auto",         ico: "🚗" },
+    { id: "actividades",  label: "Actividades",  ico: "🎟️" },
+    { id: "cenas",        label: "Cenas",        ico: "🍷" },
+    { id: "almuerzos",    label: "Almuerzos",    ico: "🥗" },
+    { id: "playa",        label: "Playa",                  ico: "🏖️" },
+    { id: "supermercado", label: "Supermercado",           ico: "🛒" },
+    { id: "combustible",  label: "Combustible",            ico: "⛽" },
+    { id: "desayunos",    label: "Desayunos y meriendas",  ico: "🥐" },
+    { id: "compras",      label: "Compras",                ico: "🛍️" },
+    { id: "varios",       label: "Varios",                 ico: "🧺" },
+    { id: "otros",        label: "Otros",                  ico: "📌" },
   ];
 
   const DEFAULT = {
@@ -571,6 +594,7 @@
     $("cats").innerHTML = CATEGORIES.map(c =>
       `<button type="button" class="cat ${c.id === selCat ? "on" : ""}" data-cat="${c.id}">${c.ico} ${c.label}</button>`
     ).join("");
+    $("paraWrap").hidden = selCat !== "compras";
   }
 
   function renderSummary() {
@@ -618,7 +642,7 @@
           return `<div class="exp">
             <span class="ico">${c.ico}</span>
             <span class="desc">${esc(e.desc) || "<i style='color:var(--ink-soft)'>sin descripción</i>"}
-              <span class="cat-tag">${c.label}</span>
+              <span class="cat-tag">${c.label}${e.para ? " · para " + esc(e.para) : ""}</span>
             </span>
             <span class="orig">${isBase ? "" : fmt(e.amount, e.currency)}</span>
             <span class="conv">${fmt(toBase(e.amount, e.currency), state.trip.base)}</span>
@@ -642,10 +666,12 @@
       currency: $("currency").value,
       desc: $("desc").value.trim(),
       category: selCat,
+      para: selCat === "compras" ? $("para").value : "",
       date: $("date").value,
     });
     $("amount").value = "";
     $("desc").value = "";
+    $("para").value = "";
     $("amount").focus();
     popStamp();
     renderAll();
