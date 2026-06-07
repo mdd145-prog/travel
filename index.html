@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bitácora de Gastos — Viaje</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Sometype+Mono:ital,wght@0,400..700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f4eee2;
+    --paper-deep: #ece4d3;
+    --ink: #1f2430;
+    --ink-soft: #5a5f6e;
+    --vermilion: #d8401f;
+    --vermilion-deep: #b33317;
+    --cobalt: #1f4fd8;
+    --stamp-green: #2e7d4f;
+    --line: rgba(31, 36, 48, .18);
+    --line-strong: rgba(31, 36, 48, .55);
+    --serif: "Fraunces", Georgia, serif;
+    --mono: "Sometype Mono", "Courier New", monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--mono);
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0 31px, rgba(31,36,48,.035) 31px 32px),
+      radial-gradient(ellipse 80% 60% at 70% -10%, rgba(216,64,31,.06), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 10% 110%, rgba(31,79,216,.05), transparent 60%);
+  }
+
+  /* grano de papel */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    opacity: .5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .04 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 28px 20px 90px; }
+
+  /* ============ CABECERA ============ */
+  header {
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 18px;
+    border-bottom: 3px double var(--line-strong);
+    padding-bottom: 22px;
+    margin-bottom: 26px;
+    animation: rise .6s cubic-bezier(.2,.8,.2,1) both;
+  }
+
+  .kicker {
+    font-size: 11px; letter-spacing: .28em; text-transform: uppercase;
+    color: var(--vermilion);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .kicker::before { content: "✈"; font-size: 14px; letter-spacing: 0; }
+
+  h1 {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: clamp(34px, 6vw, 56px);
+    line-height: 1.02;
+    font-variation-settings: "SOFT" 30, "WONK" 1;
+    letter-spacing: -.01em;
+  }
+
+  #tripName {
+    font: inherit; color: inherit;
+    background: transparent; border: none;
+    border-bottom: 2px dashed transparent;
+    width: 100%; max-width: 560px;
+    transition: border-color .2s;
+  }
+  #tripName:hover, #tripName:focus { border-bottom-color: var(--vermilion); outline: none; }
+
+  .total-stamp {
+    margin-left: auto;
+    text-align: right;
+    transform: rotate(1.5deg);
+    border: 2.5px solid var(--vermilion);
+    border-radius: 6px;
+    padding: 10px 18px 12px;
+    color: var(--vermilion);
+    box-shadow: 2px 3px 0 rgba(216,64,31,.25);
+    background: rgba(244,238,226,.7);
+  }
+  .total-stamp .lbl { font-size: 10px; letter-spacing: .25em; text-transform: uppercase; }
+  .total-stamp .amt {
+    font-family: var(--serif);
+    font-size: clamp(26px, 4vw, 40px);
+    font-weight: 800;
+    line-height: 1.05;
+    white-space: nowrap;
+  }
+  .total-stamp .sub { font-size: 11px; color: var(--ink-soft); }
+
+  /* ============ GRID ============ */
+  .grid {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 26px;
+    align-items: start;
+  }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+  /* ============ TICKET (formulario) ============ */
+  .ticket {
+    background: #fbf7ee;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 10px;
+    position: relative;
+    box-shadow: 4px 5px 0 rgba(31,36,48,.12);
+    animation: rise .6s .08s cubic-bezier(.2,.8,.2,1) both;
+    position: sticky; top: 18px;
+  }
+  @media (max-width: 860px) { .ticket { position: static; } }
+
+  .ticket-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px;
+    border-bottom: 2px dashed var(--line-strong);
+    position: relative;
+  }
+  /* muescas perforadas */
+  .ticket-head::before, .ticket-head::after {
+    content: "";
+    position: absolute; bottom: -11px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--paper);
+    border: 1.5px solid var(--line-strong);
+  }
+  .ticket-head::before { left: -11.5px; clip-path: inset(0 0 0 50%); border-left: none; }
+  .ticket-head::after  { right: -11.5px; clip-path: inset(0 50% 0 0); border-right: none; }
+
+  .ticket-head h2 {
+    font-family: var(--serif); font-size: 20px; font-weight: 700;
+  }
+  .ticket-head .no {
+    font-size: 10px; letter-spacing: .2em; color: var(--ink-soft);
+  }
+
+  .ticket-body { padding: 18px; display: grid; gap: 14px; }
+
+  label.f {
+    display: grid; gap: 5px;
+    font-size: 10px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  input, select, button {
+    font-family: var(--mono);
+  }
+
+  .ctrl {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 15px;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1.5px solid var(--line-strong);
+    border-radius: 6px;
+    transition: box-shadow .15s, border-color .15s;
+  }
+  .ctrl:focus {
+    outline: none;
+    border-color: var(--cobalt);
+    box-shadow: 2px 2px 0 rgba(31,79,216,.3);
+  }
+
+  .row2 { display: grid; grid-template-columns: 1fr 110px; gap: 10px; }
+
+  #amount { font-size: 22px; font-weight: 700; }
+
+  /* categorías como sellos */
+  .cats { display: flex; flex-wrap: wrap; gap: 7px; }
+  .cat {
+    border: 1.5px solid var(--line-strong);
+    background: transparent;
+    border-radius: 999px;
+    padding: 6px 13px;
+    font-size: 12.5px;
+    cursor: pointer;
+    color: var(--ink);
+    transition: all .15s;
+  }
+  .cat:hover { transform: translateY(-1px); border-color: var(--vermilion); }
+  .cat.on {
+    background: var(--vermilion);
+    border-color: var(--vermilion-deep);
+    color: #fff;
+    transform: rotate(-1deg);
+    box-shadow: 2px 2px 0 rgba(216,64,31,.3);
+  }
+
+  .btn-add {
+    margin-top: 4px;
+    padding: 14px;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: #fff;
+    background: var(--ink);
+    border: none; border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 3px 4px 0 rgba(31,36,48,.3);
+    transition: all .12s;
+  }
+  .btn-add:hover { background: var(--vermilion); box-shadow: 3px 4px 0 rgba(216,64,31,.35); }
+  .btn-add:active { transform: translate(2px, 3px); box-shadow: 1px 1px 0 rgba(31,36,48,.3); }
+
+  /* ============ MONEDAS ============ */
+  details.fx {
+    border-top: 2px dashed var(--line-strong);
+    padding: 14px 18px 18px;
+  }
+  details.fx summary {
+    cursor: pointer; list-style: none;
+    font-size: 11px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--cobalt);
+    display: flex; align-items: center; gap: 8px;
+  }
+  details.fx summary::before { content: "▸"; transition: transform .2s; }
+  details.fx[open] summary::before { transform: rotate(90deg); }
+  details.fx summary::-webkit-details-marker { display: none; }
+
+  .fx-body { margin-top: 12px; display: grid; gap: 8px; }
+  .fx-base { display: flex; align-items: center; gap: 10px; font-size: 12px; margin-bottom: 4px; }
+  .fx-base select { width: auto; padding: 6px 10px; font-size: 13px; }
+
+  .fx-row {
+    display: grid; grid-template-columns: 64px 1fr auto 28px;
+    gap: 8px; align-items: center;
+    font-size: 13px;
+  }
+  .fx-row .code { font-weight: 700; letter-spacing: .1em; }
+  .fx-row input { padding: 7px 10px; font-size: 13px; }
+  .fx-row .eq { color: var(--ink-soft); font-size: 11px; white-space: nowrap; }
+  .fx-del, .x-del {
+    border: none; background: none; cursor: pointer;
+    color: var(--ink-soft); font-size: 15px;
+    transition: color .15s, transform .15s;
+  }
+  .fx-del:hover, .x-del:hover { color: var(--vermilion); transform: scale(1.2); }
+
+  .fx-new { display: grid; grid-template-columns: 80px 1fr auto; gap: 8px; margin-top: 6px; }
+  .fx-new input { padding: 7px 10px; font-size: 13px; }
+  .btn-mini {
+    padding: 7px 14px; font-size: 11px; letter-spacing: .15em; text-transform: uppercase;
+    background: transparent; color: var(--cobalt);
+    border: 1.5px solid var(--cobalt); border-radius: 6px; cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-mini:hover { background: var(--cobalt); color: #fff; }
+
+  /* ============ RESUMEN ============ */
+  .panel { animation: rise .6s .16s cubic-bezier(.2,.8,.2,1) both; }
+
+  .summary {
+    display: grid; gap: 6px;
+    margin-bottom: 26px;
+  }
+  .sum-title {
+    font-size: 11px; letter-spacing: .25em; text-transform: uppercase;
+    color: var(--ink-soft); margin-bottom: 8px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .sum-title::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
+
+  .bar-row {
+    display: grid; grid-template-columns: 130px 1fr 110px;
+    gap: 12px; align-items: center;
+    font-size: 13px;
+  }
+  .bar-row .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { height: 14px; background: var(--paper-deep); border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+  .bar-fill {
+    height: 100%;
+    background: repeating-linear-gradient(-45deg, var(--vermilion) 0 6px, var(--vermilion-deep) 6px 12px);
+    border-radius: 2px;
+    transition: width .6s cubic-bezier(.2,.8,.2,1);
+  }
+  .bar-row .val { text-align: right; font-weight: 700; font-size: 12.5px; white-space: nowrap; }
+
+  /* ============ LISTA ============ */
+  .day-group { margin-bottom: 22px; }
+  .day-head {
+    display: flex; align-items: baseline; gap: 12px;
+    margin-bottom: 8px;
+  }
+  .day-head .d {
+    font-family: var(--serif); font-weight: 700; font-size: 17px;
+    text-transform: capitalize;
+  }
+  .day-head .rule { flex: 1; border-top: 1px solid var(--line); }
+  .day-head .t { font-size: 12px; color: var(--ink-soft); font-weight: 700; }
+
+  .exp {
+    display: grid;
+    grid-template-columns: 34px 1fr auto auto 30px;
+    gap: 12px; align-items: center;
+    padding: 10px 12px;
+    background: #fbf7ee;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--vermilion);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    transition: transform .15s, box-shadow .15s;
+    animation: slot .35s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .exp:hover { transform: translateX(3px); box-shadow: 3px 3px 0 rgba(31,36,48,.1); }
+
+  .exp .ico { font-size: 19px; text-align: center; }
+  .exp .desc { font-size: 14px; line-height: 1.3; }
+  .exp .desc .cat-tag {
+    display: block; font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--ink-soft); margin-top: 2px;
+  }
+  .exp .orig { font-size: 12px; color: var(--ink-soft); text-align: right; white-space: nowrap; }
+  .exp .conv { font-weight: 700; font-size: 15px; text-align: right; white-space: nowrap; min-width: 90px; }
+
+  .empty {
+    text-align: center; padding: 60px 20px;
+    color: var(--ink-soft);
+    border: 2px dashed var(--line);
+    border-radius: 10px;
+  }
+  .empty .big { font-family: var(--serif); font-size: 26px; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
+
+  /* ============ PIE ============ */
+  .tools {
+    margin-top: 34px; padding-top: 16px;
+    border-top: 3px double var(--line-strong);
+    display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+    font-size: 11px; color: var(--ink-soft);
+  }
+  .tools .spacer { flex: 1; }
+  .btn-ghost {
+    padding: 8px 16px; font-size: 11px; letter-spacing: .15em; text-transform: uppercase;
+    background: transparent; color: var(--ink);
+    border: 1.5px solid var(--line-strong); border-radius: 6px; cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-ghost:hover { background: var(--ink); color: var(--paper); }
+  .btn-ghost.danger:hover { background: var(--vermilion); border-color: var(--vermilion); }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+  @keyframes slot { from { opacity: 0; transform: translateX(-10px); } }
+
+  /* sello "PAGADO" decorativo al agregar */
+  .stamp-pop {
+    position: fixed; left: 50%; top: 40%;
+    transform: translate(-50%,-50%) rotate(-12deg) scale(.6);
+    font-family: var(--serif); font-weight: 900;
+    font-size: 54px; letter-spacing: .1em;
+    color: var(--stamp-green);
+    border: 5px solid var(--stamp-green);
+    border-radius: 10px; padding: 6px 26px;
+    opacity: 0; pointer-events: none; z-index: 1000;
+    text-transform: uppercase;
+  }
+  .stamp-pop.go { animation: stamp .8s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes stamp {
+    0%   { opacity: 0; transform: translate(-50%,-50%) rotate(-12deg) scale(1.6); }
+    25%  { opacity: .9; transform: translate(-50%,-50%) rotate(-12deg) scale(1); }
+    70%  { opacity: .9; }
+    100% { opacity: 0; transform: translate(-50%,-50%) rotate(-12deg) scale(.95); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div style="flex:1; min-width: 260px;">
+      <div class="kicker">Bitácora de gastos · registro de viaje</div>
+      <h1><input id="tripName" value="Mi viaje" spellcheck="false" aria-label="Nombre del viaje"></h1>
+    </div>
+    <div class="total-stamp">
+      <div class="lbl">Total gastado</div>
+      <div class="amt" id="totalAmt">0,00</div>
+      <div class="sub" id="totalSub">moneda base</div>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- ===== FORMULARIO ===== -->
+    <aside class="ticket">
+      <div class="ticket-head">
+        <h2>Nuevo gasto</h2>
+        <span class="no" id="ticketNo">Nº 0001</span>
+      </div>
+      <form class="ticket-body" id="form">
+        <div class="row2">
+          <label class="f">Importe
+            <input class="ctrl" id="amount" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0.00" required>
+          </label>
+          <label class="f">Moneda
+            <select class="ctrl" id="currency"></select>
+          </label>
+        </div>
+        <label class="f">Descripción
+          <input class="ctrl" id="desc" type="text" placeholder="Cena en el puerto…" maxlength="80">
+        </label>
+        <div class="row2">
+          <label class="f" style="grid-column: 1 / -1;">Fecha
+            <input class="ctrl" id="date" type="date" required>
+          </label>
+        </div>
+        <div>
+          <label class="f" style="margin-bottom:7px;">Categoría</label>
+          <div class="cats" id="cats"></div>
+        </div>
+        <button class="btn-add" type="submit">Sellar gasto ◉</button>
+      </form>
+
+      <details class="fx">
+        <summary>Monedas y tipos de cambio</summary>
+        <div class="fx-body">
+          <div class="fx-base">
+            <span style="font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-soft);">Moneda base</span>
+            <select class="ctrl" id="baseSel"></select>
+          </div>
+          <div id="fxRows"></div>
+          <div class="fx-new">
+            <input class="ctrl" id="newCode" placeholder="GBP" maxlength="4" style="text-transform:uppercase;">
+            <input class="ctrl" id="newRate" type="number" step="any" min="0" placeholder="Tipo de cambio">
+            <button class="btn-mini" type="button" id="addFx">Agregar</button>
+          </div>
+        </div>
+      </details>
+    </aside>
+
+    <!-- ===== PANEL ===== -->
+    <main class="panel">
+      <section class="summary">
+        <div class="sum-title">Por categoría</div>
+        <div id="catBars"></div>
+      </section>
+      <section>
+        <div class="sum-title">Movimientos</div>
+        <div id="list"></div>
+      </section>
+
+      <div class="tools">
+        <button class="btn-ghost" id="exportBtn">Exportar JSON</button>
+        <button class="btn-ghost" id="importBtn">Importar</button>
+        <input type="file" id="importFile" accept="application/json" hidden>
+        <span class="spacer"></span>
+        <span id="countLbl"></span>
+        <button class="btn-ghost danger" id="resetBtn">Borrar todo</button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="stamp-pop" id="stampPop">Sellado</div>
+
+<script>
+(() => {
+  const KEY = "gastos-viaje-v1";
+
+  const CATEGORIES = [
+    { id: "comida",      label: "Comida",      ico: "🍜" },
+    { id: "alojamiento", label: "Alojamiento", ico: "🛏️" },
+    { id: "transporte",  label: "Transporte",  ico: "🚆" },
+    { id: "actividades", label: "Actividades", ico: "🎟️" },
+    { id: "compras",     label: "Compras",     ico: "🛍️" },
+    { id: "otros",       label: "Otros",       ico: "📌" },
+  ];
+
+  const DEFAULT = {
+    trip: { name: "Mi viaje", base: "USD" },
+    // rate: cuántas unidades de moneda BASE vale 1 unidad de esta moneda
+    currencies: [
+      { code: "USD", rate: 1 },
+      { code: "EUR", rate: 1.08 },
+      { code: "ARS", rate: 0.00085 },
+    ],
+    expenses: [],
+  };
+
+  let state = load();
+  let selCat = CATEGORIES[0].id;
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return structuredClone(DEFAULT);
+      const s = JSON.parse(raw);
+      if (!s.trip || !Array.isArray(s.currencies) || !Array.isArray(s.expenses)) throw 0;
+      return s;
+    } catch { return structuredClone(DEFAULT); }
+  }
+  function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+
+  // ---- helpers ----
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n, code) =>
+    new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + " " + code;
+
+  function rateOf(code) {
+    const c = state.currencies.find(c => c.code === code);
+    return c ? c.rate : 1;
+  }
+  // convierte un importe a moneda base
+  const toBase = (amount, code) => amount * rateOf(code);
+
+  const catById = (id) => CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
+
+  function dayLabel(iso) {
+    const d = new Date(iso + "T12:00:00");
+    return d.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+  }
+
+  // ---- render ----
+  function renderAll() {
+    renderHeader();
+    renderCurrencySelect();
+    renderFx();
+    renderCats();
+    renderSummary();
+    renderList();
+    save();
+  }
+
+  function renderHeader() {
+    $("tripName").value = state.trip.name;
+    const total = state.expenses.reduce((s, e) => s + toBase(e.amount, e.currency), 0);
+    $("totalAmt").textContent = fmt(total, "");
+    $("totalSub").textContent = "en " + state.trip.base + " · " + state.expenses.length + " gasto" + (state.expenses.length === 1 ? "" : "s");
+    $("ticketNo").textContent = "Nº " + String(state.expenses.length + 1).padStart(4, "0");
+    $("countLbl").textContent = state.expenses.length + " movimiento" + (state.expenses.length === 1 ? "" : "s") + " registrados";
+  }
+
+  function renderCurrencySelect() {
+    const sel = $("currency");
+    const prev = sel.value;
+    sel.innerHTML = state.currencies.map(c => `<option value="${c.code}">${c.code}</option>`).join("");
+    if (state.currencies.some(c => c.code === prev)) sel.value = prev;
+  }
+
+  function renderFx() {
+    const baseSel = $("baseSel");
+    baseSel.innerHTML = state.currencies.map(c =>
+      `<option value="${c.code}" ${c.code === state.trip.base ? "selected" : ""}>${c.code}</option>`).join("");
+
+    $("fxRows").innerHTML = state.currencies.map((c, i) => {
+      if (c.code === state.trip.base)
+        return `<div class="fx-row"><span class="code">${c.code}</span><span class="eq" style="grid-column: 2 / -1;">moneda base (1 = 1)</span></div>`;
+      return `<div class="fx-row">
+        <span class="code">${c.code}</span>
+        <input type="number" step="any" min="0" value="${c.rate}" data-fx="${i}" aria-label="Tipo de cambio ${c.code}">
+        <span class="eq">= 1 ${c.code} en ${state.trip.base}</span>
+        <button class="fx-del" data-fxdel="${i}" title="Eliminar ${c.code}">✕</button>
+      </div>`;
+    }).join("");
+  }
+
+  function renderCats() {
+    $("cats").innerHTML = CATEGORIES.map(c =>
+      `<button type="button" class="cat ${c.id === selCat ? "on" : ""}" data-cat="${c.id}">${c.ico} ${c.label}</button>`
+    ).join("");
+  }
+
+  function renderSummary() {
+    const byCat = {};
+    for (const e of state.expenses) byCat[e.category] = (byCat[e.category] || 0) + toBase(e.amount, e.currency);
+    const entries = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+    const max = entries.length ? entries[0][1] : 1;
+    $("catBars").innerHTML = entries.length
+      ? entries.map(([id, v]) => {
+          const c = catById(id);
+          return `<div class="bar-row">
+            <span class="nm">${c.ico} ${c.label}</span>
+            <div class="bar-track"><div class="bar-fill" style="width:${(v / max) * 100}%"></div></div>
+            <span class="val">${fmt(v, state.trip.base)}</span>
+          </div>`;
+        }).join("")
+      : `<div style="font-size:12px;color:var(--ink-soft);">Todavía no hay datos para resumir.</div>`;
+  }
+
+  function renderList() {
+    if (!state.expenses.length) {
+      $("list").innerHTML = `<div class="empty">
+        <div class="big">El cuaderno está en blanco</div>
+        Sellá tu primer gasto con el formulario.
+      </div>`;
+      return;
+    }
+    // agrupar por fecha, descendente
+    const byDay = {};
+    for (const e of state.expenses) (byDay[e.date] = byDay[e.date] || []).push(e);
+    const days = Object.keys(byDay).sort((a, b) => b.localeCompare(a));
+
+    $("list").innerHTML = days.map(day => {
+      const items = byDay[day];
+      const dayTotal = items.reduce((s, e) => s + toBase(e.amount, e.currency), 0);
+      return `<div class="day-group">
+        <div class="day-head">
+          <span class="d">${dayLabel(day)}</span>
+          <span class="rule"></span>
+          <span class="t">${fmt(dayTotal, state.trip.base)}</span>
+        </div>
+        ${items.map(e => {
+          const c = catById(e.category);
+          const isBase = e.currency === state.trip.base;
+          return `<div class="exp">
+            <span class="ico">${c.ico}</span>
+            <span class="desc">${esc(e.desc) || "<i style='color:var(--ink-soft)'>sin descripción</i>"}
+              <span class="cat-tag">${c.label}</span>
+            </span>
+            <span class="orig">${isBase ? "" : fmt(e.amount, e.currency)}</span>
+            <span class="conv">${fmt(toBase(e.amount, e.currency), state.trip.base)}</span>
+            <button class="x-del" data-del="${e.id}" title="Eliminar gasto">✕</button>
+          </div>`;
+        }).join("")}
+      </div>`;
+    }).join("");
+  }
+
+  const esc = (s) => (s || "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+
+  // ---- eventos ----
+  $("form").addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const amount = parseFloat($("amount").value);
+    if (!(amount > 0)) return;
+    state.expenses.push({
+      id: crypto.randomUUID(),
+      amount,
+      currency: $("currency").value,
+      desc: $("desc").value.trim(),
+      category: selCat,
+      date: $("date").value,
+    });
+    $("amount").value = "";
+    $("desc").value = "";
+    $("amount").focus();
+    popStamp();
+    renderAll();
+  });
+
+  $("cats").addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-cat]");
+    if (!b) return;
+    selCat = b.dataset.cat;
+    renderCats();
+  });
+
+  $("list").addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-del]");
+    if (!b) return;
+    state.expenses = state.expenses.filter(e => e.id !== b.dataset.del);
+    renderAll();
+  });
+
+  $("tripName").addEventListener("input", () => { state.trip.name = $("tripName").value; save(); });
+
+  $("baseSel").addEventListener("change", () => {
+    const newBase = $("baseSel").value;
+    const factor = rateOf(newBase); // valor de la nueva base en la base vieja
+    // re-expresar todas las tasas respecto de la nueva base
+    state.currencies = state.currencies.map(c => ({ code: c.code, rate: c.rate / factor }));
+    state.trip.base = newBase;
+    renderAll();
+  });
+
+  $("fxRows").addEventListener("input", (ev) => {
+    const i = ev.target.dataset.fx;
+    if (i === undefined) return;
+    const v = parseFloat(ev.target.value);
+    if (v > 0) { state.currencies[i].rate = v; renderHeader(); renderSummary(); renderList(); save(); }
+  });
+
+  $("fxRows").addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-fxdel]");
+    if (!b) return;
+    const code = state.currencies[b.dataset.fxdel].code;
+    if (state.expenses.some(e => e.currency === code)) {
+      alert("No se puede eliminar " + code + ": hay gastos registrados en esa moneda.");
+      return;
+    }
+    state.currencies.splice(b.dataset.fxdel, 1);
+    renderAll();
+  });
+
+  $("addFx").addEventListener("click", () => {
+    const code = $("newCode").value.trim().toUpperCase();
+    const rate = parseFloat($("newRate").value);
+    if (!code || !(rate > 0)) return;
+    if (state.currencies.some(c => c.code === code)) { alert(code + " ya existe."); return; }
+    state.currencies.push({ code, rate });
+    $("newCode").value = ""; $("newRate").value = "";
+    renderAll();
+  });
+
+  $("exportBtn").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = (state.trip.name || "viaje").toLowerCase().replace(/\s+/g, "-") + "-gastos.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  $("importBtn").addEventListener("click", () => $("importFile").click());
+  $("importFile").addEventListener("change", async (ev) => {
+    const file = ev.target.files[0];
+    if (!file) return;
+    try {
+      const s = JSON.parse(await file.text());
+      if (!s.trip || !Array.isArray(s.currencies) || !Array.isArray(s.expenses)) throw 0;
+      state = s;
+      renderAll();
+    } catch { alert("Archivo inválido."); }
+    ev.target.value = "";
+  });
+
+  $("resetBtn").addEventListener("click", () => {
+    if (confirm("¿Borrar todos los gastos y empezar de nuevo?")) {
+      state = structuredClone(DEFAULT);
+      renderAll();
+    }
+  });
+
+  function popStamp() {
+    const s = $("stampPop");
+    s.classList.remove("go");
+    void s.offsetWidth; // reinicia animación
+    s.classList.add("go");
+  }
+
+  // fecha de hoy por defecto
+  $("date").value = new Date().toISOString().slice(0, 10);
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
