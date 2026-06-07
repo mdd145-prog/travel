@@ -484,13 +484,7 @@
           <div class="cats" id="cats"></div>
         </div>
         <label class="f" id="paraWrap" hidden>Para quién
-          <select class="ctrl" id="para">
-            <option value="">— sin asignar —</option>
-            <option value="Martin">Martin</option>
-            <option value="Dani">Dani</option>
-            <option value="Remo">Remo</option>
-            <option value="Juana">Juana</option>
-          </select>
+          <select class="ctrl" id="para"></select>
         </label>
         <button class="btn-add" type="submit">Sellar gasto ◉</button>
       </form>
@@ -517,6 +511,10 @@
       <section class="summary">
         <div class="sum-title">Por categoría</div>
         <div id="catBars"></div>
+      </section>
+      <section class="summary" id="peopleSection" hidden>
+        <div class="sum-title">Por persona</div>
+        <div id="peopleBars"></div>
       </section>
       <section>
         <div class="sum-title">Movimientos</div>
@@ -557,6 +555,9 @@
     { id: "varios",       label: "Varios",                 ico: "🧺" },
     { id: "otros",        label: "Otros",                  ico: "📌" },
   ];
+
+  // integrantes del viaje (para "Para quién" en compras y el resumen por persona)
+  const PEOPLE = ["Martin", "Dani", "Remo", "Juana", "Todos"];
 
   const DEFAULT = {
     trip: { name: "Mi viaje", base: "USD" },
@@ -602,6 +603,8 @@
     return d.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
   }
 
+  const personIco = (name) => name === "Todos" ? "👥" : "🧍";
+
   // ---- render ----
   function renderAll() {
     renderHeader();
@@ -609,8 +612,36 @@
     renderFx();
     renderCats();
     renderSummary();
+    renderPeople();
     renderList();
     save();
+  }
+
+  function renderPara() {
+    const sel = $("para");
+    const prev = sel.value;
+    sel.innerHTML = `<option value="">— sin asignar —</option>` +
+      PEOPLE.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join("");
+    if (prev) sel.value = prev;
+  }
+
+  function renderPeople() {
+    const byPerson = {};
+    for (const e of state.expenses) {
+      if (!e.para) continue;
+      byPerson[e.para] = (byPerson[e.para] || 0) + toBase(e.amount, e.currency);
+    }
+    const entries = Object.entries(byPerson).sort((a, b) => b[1] - a[1]);
+    $("peopleSection").hidden = entries.length === 0;
+    if (!entries.length) return;
+    const max = entries[0][1];
+    $("peopleBars").innerHTML = entries.map(([name, v]) =>
+      `<div class="bar-row">
+        <span class="nm">${personIco(name)} ${esc(name)}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${(v / max) * 100}%"></div></div>
+        <span class="val">${fmt(v, state.trip.base)}</span>
+      </div>`
+    ).join("");
   }
 
   function renderHeader() {
@@ -825,6 +856,7 @@
 
   // fecha de hoy por defecto
   $("date").value = new Date().toISOString().slice(0, 10);
+  renderPara();
 
   renderAll();
 })();
