@@ -554,6 +554,7 @@
     { id: "compras",      label: "Compras",                ico: "🛍️" },
     { id: "varios",       label: "Varios",                 ico: "🧺" },
     { id: "otros",        label: "Otros",                  ico: "📌" },
+    { id: "devolucion",   label: "Devolución",             ico: "↩️" },
   ];
 
   // integrantes del viaje (para "Para quién" en compras y el resumen por persona)
@@ -749,7 +750,7 @@
     if (!(amount > 0)) return;
     state.expenses.push({
       id: crypto.randomUUID(),
-      amount,
+      amount: selCat === "devolucion" ? -amount : amount,
       currency: $("currency").value,
       desc: $("desc").value.trim(),
       category: selCat,
