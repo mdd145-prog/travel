@@ -260,6 +260,13 @@
     transition: color .15s, transform .15s;
   }
   .fx-del:hover, .x-del:hover { color: var(--vermilion); transform: scale(1.2); }
+  .acts { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .x-edit {
+    border: none; background: transparent; cursor: pointer;
+    color: var(--ink-soft); font-size: 14px; line-height: 1; padding: 0;
+    transition: color .15s, transform .15s;
+  }
+  .x-edit:hover { color: var(--cobalt); transform: scale(1.2); }
 
   .fx-new { display: grid; grid-template-columns: 80px 1fr auto; gap: 8px; margin-top: 6px; }
   .fx-new input { padding: 7px 10px; font-size: 13px; }
@@ -486,7 +493,8 @@
         <label class="f" id="paraWrap" hidden>Para quién
           <select class="ctrl" id="para"></select>
         </label>
-        <button class="btn-add" type="submit">Sellar gasto ◉</button>
+        <button class="btn-add" type="submit" id="submitBtn">Sellar gasto ◉</button>
+        <button class="btn-ghost" type="button" id="cancelEdit" hidden style="width:100%;margin-top:6px;">Cancelar edición</button>
       </form>
 
       <details class="fx">
@@ -573,6 +581,7 @@
 
   let state = load();
   let selCat = CATEGORIES[0].id;
+  let editingId = null;
 
   function load() {
     try {
@@ -734,7 +743,10 @@
             </span>
             <span class="orig">${isBase ? "" : fmt(e.amount, e.currency)}</span>
             <span class="conv">${fmt(toBase(e.amount, e.currency), state.trip.base)}</span>
-            <button class="x-del" data-del="${e.id}" title="Eliminar gasto">✕</button>
+            <span class="acts">
+              <button class="x-edit" data-edit="${e.id}" title="Editar gasto">✎</button>
+              <button class="x-del" data-del="${e.id}" title="Eliminar gasto">✕</button>
+            </span>
           </div>`;
         }).join("")}
       </div>`;
@@ -748,22 +760,56 @@
     ev.preventDefault();
     const amount = parseFloat($("amount").value);
     if (!(amount > 0)) return;
-    state.expenses.push({
-      id: crypto.randomUUID(),
+    const data = {
       amount: selCat === "devolucion" ? -amount : amount,
       currency: $("currency").value,
       desc: $("desc").value.trim(),
       category: selCat,
       para: selCat === "compras" ? $("para").value : "",
       date: $("date").value,
-    });
+    };
+    if (editingId) {
+      const e = state.expenses.find(x => x.id === editingId);
+      if (e) Object.assign(e, data);
+    } else {
+      state.expenses.push({ id: crypto.randomUUID(), ...data });
+      popStamp();
+    }
+    resetForm();
+    $("amount").focus();
+    renderAll();
+  });
+
+  // deja el formulario limpio y fuera de modo edición
+  function resetForm() {
+    editingId = null;
     $("amount").value = "";
     $("desc").value = "";
     $("para").value = "";
+    $("submitBtn").textContent = "Sellar gasto ◉";
+    $("cancelEdit").hidden = true;
+  }
+
+  // carga un gasto en el formulario para editarlo
+  function startEdit(id) {
+    const e = state.expenses.find(x => x.id === id);
+    if (!e) return;
+    editingId = id;
+    $("amount").value = Math.abs(e.amount);
+    $("currency").value = e.currency;
+    $("desc").value = e.desc || "";
+    $("date").value = e.date;
+    selCat = e.category;
+    renderCats();
+    renderPara();
+    $("para").value = e.para || "";
+    $("submitBtn").textContent = "Guardar cambios ✓";
+    $("cancelEdit").hidden = false;
+    document.querySelector(".ticket").scrollIntoView({ behavior: "smooth", block: "start" });
     $("amount").focus();
-    popStamp();
-    renderAll();
-  });
+  }
+
+  $("cancelEdit").addEventListener("click", resetForm);
 
   $("cats").addEventListener("click", (ev) => {
     const b = ev.target.closest("[data-cat]");
@@ -773,8 +819,11 @@
   });
 
   $("list").addEventListener("click", (ev) => {
+    const edit = ev.target.closest("[data-edit]");
+    if (edit) { startEdit(edit.dataset.edit); return; }
     const b = ev.target.closest("[data-del]");
     if (!b) return;
+    if (editingId === b.dataset.del) resetForm();
     state.expenses = state.expenses.filter(e => e.id !== b.dataset.del);
     renderAll();
   });
@@ -835,8 +884,18 @@
     try {
       const s = JSON.parse(await file.text());
       if (!s.trip || !Array.isArray(s.currencies) || !Array.isArray(s.expenses)) throw 0;
-      state = s;
+      const n = s.expenses.length;
+      if (!confirm(`Se van a SUMAR ${n} gasto(s) de "${s.trip.name || "archivo"}" a tu viaje actual.\n\nTus gastos actuales no se borran. ¿Continuar?`)) return;
+      // backup del estado actual por las dudas
+      localStorage.setItem(KEY + "-backup", JSON.stringify(state));
+      // sumar monedas que falten
+      for (const c of s.currencies)
+        if (!state.currencies.some(x => x.code === c.code)) state.currencies.push(c);
+      // sumar gastos (ids nuevos para evitar choques)
+      for (const e of s.expenses)
+        state.expenses.push({ ...e, id: crypto.randomUUID() });
       renderAll();
+      alert(`Listo: se agregaron ${n} gasto(s). (Guardé un backup de tu estado anterior por si acaso.)`);
     } catch { alert("Archivo inválido."); }
     ev.target.value = "";
   });
