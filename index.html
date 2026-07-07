@@ -369,6 +369,77 @@
   .btn-ghost:hover { background: var(--ink); color: var(--paper); }
   .btn-ghost.danger:hover { background: var(--vermilion); border-color: var(--vermilion); }
 
+  /* ============ SOLAPAS ============ */
+  .tabs {
+    display: flex; gap: 6px;
+    border-bottom: 2px dashed var(--line-strong);
+    margin-bottom: 22px;
+  }
+  .tab {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+    background: transparent; color: var(--ink-soft); border: none; cursor: pointer;
+    padding: 10px 6px; margin-bottom: -2px;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.on { color: var(--vermilion); border-bottom-color: var(--vermilion); font-weight: 700; }
+
+  /* cotización: pista y estado base */
+  #cotizHint { text-transform: none; letter-spacing: 0; font-size: 10px; color: var(--ink-soft); }
+  #cotizWrap.is-base #cotiz { opacity: .55; }
+
+  /* ============ VISTA POR DÍA ============ */
+  .pd-total-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
+  .pd-total {
+    font-family: var(--serif); font-weight: 800;
+    font-size: clamp(24px, 4vw, 34px); color: var(--vermilion); white-space: nowrap;
+  }
+
+  .filterbar { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 4px; }
+  .fchip {
+    display: inline-flex; align-items: center; gap: 7px;
+    border: 1.5px solid var(--line-strong); background: transparent; border-radius: 999px;
+    padding: 6px 12px; font-family: var(--mono); font-size: 12.5px; color: var(--ink);
+    cursor: pointer; transition: all .15s;
+  }
+  .fchip:hover { transform: translateY(-1px); }
+  .fchip .fbox {
+    width: 15px; height: 15px; border-radius: 4px;
+    border: 1.5px solid var(--ink-soft);
+    display: grid; place-items: center; font-size: 11px; line-height: 1; color: transparent;
+  }
+  .fchip.on { border-color: var(--vermilion-deep); background: var(--vermilion); color: #fff; box-shadow: 2px 2px 0 rgba(216,64,31,.3); }
+  .fchip.on .fbox { background: #fff; border-color: #fff; color: var(--vermilion); }
+  .fchip .famt { font-weight: 700; opacity: .85; }
+
+  .pd-tools { display: flex; gap: 16px; margin: 6px 2px 20px; }
+  .pd-tools button {
+    background: none; border: none; color: var(--cobalt);
+    font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    cursor: pointer; padding: 2px 0;
+  }
+  .pd-tools button:hover { text-decoration: underline; }
+
+  .pd-cat { margin: 0 0 8px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fbf7ee; }
+  .pd-cat.off { opacity: .4; }
+  .pd-cat-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; background: var(--paper-deep);
+    font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft);
+  }
+  .pd-cat-head .s { color: var(--ink); font-weight: 700; letter-spacing: 0; }
+  .pd-row {
+    display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center;
+    padding: 9px 12px; border-top: 1px solid var(--line); font-size: 13.5px;
+  }
+  .pd-row:first-child { border-top: none; }
+  .pd-row .pd-desc { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pd-row .pd-para { color: var(--cobalt); font-size: 11px; }
+  .pd-row .pd-orig { color: var(--ink-soft); font-size: 11.5px; white-space: nowrap; }
+  .pd-row .pd-conv { font-weight: 700; white-space: nowrap; }
+  .pd-row .pd-conv.neg { color: var(--stamp-green); }
+
   @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
   @keyframes slot { from { opacity: 0; transform: translateX(-10px); } }
 
@@ -478,6 +549,9 @@
             <select class="ctrl" id="currency"></select>
           </label>
         </div>
+        <label class="f" id="cotizWrap">Cotización <span id="cotizHint"></span>
+          <input class="ctrl" id="cotiz" type="number" step="any" min="0" inputmode="decimal" placeholder="1.00">
+        </label>
         <label class="f">Descripción
           <input class="ctrl" id="desc" type="text" placeholder="Cena en el puerto…" maxlength="80">
         </label>
@@ -516,18 +590,39 @@
 
     <!-- ===== PANEL ===== -->
     <main class="panel">
-      <section class="summary">
-        <div class="sum-title">Por categoría</div>
-        <div id="catBars"></div>
-      </section>
-      <section class="summary" id="peopleSection" hidden>
-        <div class="sum-title">Por persona</div>
-        <div id="peopleBars"></div>
-      </section>
-      <section>
-        <div class="sum-title">Movimientos</div>
-        <div id="list"></div>
-      </section>
+
+      <div class="tabs" id="tabs">
+        <button type="button" class="tab on" data-tab="resumen">Resumen</button>
+        <button type="button" class="tab" data-tab="pordia">Por día</button>
+      </div>
+
+      <div id="viewResumen">
+        <section class="summary">
+          <div class="sum-title">Por categoría</div>
+          <div id="catBars"></div>
+        </section>
+        <section class="summary" id="peopleSection" hidden>
+          <div class="sum-title">Por persona</div>
+          <div id="peopleBars"></div>
+        </section>
+        <section>
+          <div class="sum-title">Movimientos</div>
+          <div id="list"></div>
+        </section>
+      </div>
+
+      <div id="viewPorDia" hidden>
+        <div class="pd-total-row">
+          <span class="sum-title" style="margin:0;">Total seleccionado</span>
+          <span class="pd-total" id="pdTotal">0,00</span>
+        </div>
+        <div class="filterbar" id="pdFilters"></div>
+        <div class="pd-tools">
+          <button type="button" id="pdAll">Todas</button>
+          <button type="button" id="pdNone">Ninguna</button>
+        </div>
+        <div id="pdDays"></div>
+      </div>
 
       <div class="tools">
         <button class="btn-ghost" id="exportBtn">Exportar JSON</button>
@@ -582,6 +677,8 @@
   let state = load();
   let selCat = CATEGORIES[0].id;
   let editingId = null;
+  let activeCats = null;              // categorías tildadas en la vista "Por día"
+  const knownCats = new Set();        // para que categorías nuevas entren tildadas
 
   function load() {
     try {
@@ -603,8 +700,10 @@
     const c = state.currencies.find(c => c.code === code);
     return c ? c.rate : 1;
   }
-  // convierte un importe a moneda base
-  const toBase = (amount, code) => amount * rateOf(code);
+  // cotización puntual de la operación (respaldo: tasa global de la moneda)
+  const cotizOf = (e) => (e.cotizacion != null && e.cotizacion > 0) ? e.cotizacion : rateOf(e.currency);
+  // convierte un gasto a moneda base usando SU cotización
+  const toBase = (e) => e.amount * cotizOf(e);
 
   const catById = (id) => CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
 
@@ -624,7 +723,82 @@
     renderSummary();
     renderPeople();
     renderList();
+    renderPorDia();
     save();
+  }
+
+  // categorías que tienen al menos un gasto (en el orden de CATEGORIES)
+  function presentCats() {
+    return CATEGORIES.filter(c => state.expenses.some(e => e.category === c.id));
+  }
+
+  function renderPorDia() {
+    const present = presentCats();
+    if (activeCats === null) activeCats = new Set();
+    // categorías nuevas entran tildadas por defecto
+    for (const c of present) if (!knownCats.has(c.id)) { knownCats.add(c.id); activeCats.add(c.id); }
+
+    // barra de filtros con total por categoría
+    const byCat = {};
+    for (const e of state.expenses) byCat[e.category] = (byCat[e.category] || 0) + toBase(e);
+    $("pdFilters").innerHTML = present.length
+      ? present.map(c => {
+          const on = activeCats.has(c.id);
+          return `<button type="button" class="fchip ${on ? "on" : ""}" data-fcat="${c.id}">
+            <span class="fbox">✓</span>${c.ico} ${c.label}
+            <span class="famt">${fmt(byCat[c.id] || 0, state.trip.base)}</span>
+          </button>`;
+        }).join("")
+      : `<div style="font-size:12px;color:var(--ink-soft);">Todavía no hay gastos.</div>`;
+
+    // total de las categorías tildadas
+    let total = 0;
+    for (const e of state.expenses) if (activeCats.has(e.category)) total += toBase(e);
+    $("pdTotal").textContent = fmt(total, state.trip.base);
+
+    // gastos por día, subagrupados por categoría
+    const byDay = {};
+    for (const e of state.expenses) (byDay[e.date] = byDay[e.date] || []).push(e);
+    const days = Object.keys(byDay).sort((a, b) => b.localeCompare(a));
+
+    $("pdDays").innerHTML = days.map(day => {
+      const items = byDay[day];
+      const cats = CATEGORIES.filter(c => items.some(e => e.category === c.id));
+      let daySum = 0;
+      const blocks = cats.map(c => {
+        const rows = items.filter(e => e.category === c.id);
+        const on = activeCats.has(c.id);
+        const csum = rows.reduce((s, e) => s + toBase(e), 0);
+        if (on) daySum += csum;
+        return `<div class="pd-cat ${on ? "" : "off"}">
+          <div class="pd-cat-head"><span>${c.ico} ${c.label}</span><span class="s">${fmt(csum, state.trip.base)}</span></div>
+          ${rows.map(e => {
+            const v = toBase(e);
+            const isBase = e.currency === state.trip.base;
+            return `<div class="pd-row">
+              <span class="pd-desc">${esc(e.desc) || "<i style='color:var(--ink-soft)'>sin descripción</i>"}${e.para ? ` <span class="pd-para">· ${esc(e.para)}</span>` : ""}</span>
+              <span class="pd-orig">${isBase ? "" : fmt(e.amount, e.currency)}</span>
+              <span class="pd-conv ${v < 0 ? "neg" : ""}">${fmt(v, state.trip.base)}</span>
+            </div>`;
+          }).join("")}
+        </div>`;
+      }).join("");
+      return `<div class="day-group">
+        <div class="day-head"><span class="d">${dayLabel(day)}</span><span class="rule"></span><span class="t">${fmt(daySum, state.trip.base)}</span></div>
+        ${blocks}
+      </div>`;
+    }).join("");
+  }
+
+  // sincroniza el campo de cotización según la moneda elegida
+  function syncCotiz() {
+    const cur = $("currency").value;
+    const isBase = cur === state.trip.base;
+    const inp = $("cotiz");
+    $("cotizWrap").classList.toggle("is-base", isBase);
+    $("cotizHint").textContent = isBase ? "· moneda base (= 1)" : `· 1 ${cur} en ${state.trip.base}`;
+    if (isBase) { inp.value = 1; inp.readOnly = true; }
+    else { inp.readOnly = false; if (!inp.value || Number(inp.value) === 1) inp.value = rateOf(cur); }
   }
 
   function renderPara() {
@@ -639,7 +813,7 @@
     const byPerson = {};
     for (const e of state.expenses) {
       if (!e.para) continue;
-      byPerson[e.para] = (byPerson[e.para] || 0) + toBase(e.amount, e.currency);
+      byPerson[e.para] = (byPerson[e.para] || 0) + toBase(e);
     }
     const entries = Object.entries(byPerson).sort((a, b) => b[1] - a[1]);
     $("peopleSection").hidden = entries.length === 0;
@@ -656,7 +830,7 @@
 
   function renderHeader() {
     $("tripName").value = state.trip.name;
-    const total = state.expenses.reduce((s, e) => s + toBase(e.amount, e.currency), 0);
+    const total = state.expenses.reduce((s, e) => s + toBase(e), 0);
     $("totalAmt").textContent = fmt(total, "");
     $("totalSub").textContent = "en " + state.trip.base + " · " + state.expenses.length + " gasto" + (state.expenses.length === 1 ? "" : "s");
     $("ticketNo").textContent = "Nº " + String(state.expenses.length + 1).padStart(4, "0");
@@ -696,7 +870,7 @@
 
   function renderSummary() {
     const byCat = {};
-    for (const e of state.expenses) byCat[e.category] = (byCat[e.category] || 0) + toBase(e.amount, e.currency);
+    for (const e of state.expenses) byCat[e.category] = (byCat[e.category] || 0) + toBase(e);
     const entries = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
     const max = entries.length ? entries[0][1] : 1;
     $("catBars").innerHTML = entries.length
@@ -726,7 +900,7 @@
 
     $("list").innerHTML = days.map(day => {
       const items = byDay[day];
-      const dayTotal = items.reduce((s, e) => s + toBase(e.amount, e.currency), 0);
+      const dayTotal = items.reduce((s, e) => s + toBase(e), 0);
       return `<div class="day-group">
         <div class="day-head">
           <span class="d">${dayLabel(day)}</span>
@@ -742,7 +916,7 @@
               <span class="cat-tag">${c.label}${e.para ? " · para " + esc(e.para) : ""}</span>
             </span>
             <span class="orig">${isBase ? "" : fmt(e.amount, e.currency)}</span>
-            <span class="conv">${fmt(toBase(e.amount, e.currency), state.trip.base)}</span>
+            <span class="conv">${fmt(toBase(e), state.trip.base)}</span>
             <span class="acts">
               <button class="x-edit" data-edit="${e.id}" title="Editar gasto">✎</button>
               <button class="x-del" data-del="${e.id}" title="Eliminar gasto">✕</button>
@@ -760,9 +934,13 @@
     ev.preventDefault();
     const amount = parseFloat($("amount").value);
     if (!(amount > 0)) return;
+    const currency = $("currency").value;
+    const cotizVal = parseFloat($("cotiz").value);
+    const cotizacion = currency === state.trip.base ? 1 : (cotizVal > 0 ? cotizVal : rateOf(currency));
     const data = {
       amount: selCat === "devolucion" ? -amount : amount,
-      currency: $("currency").value,
+      currency,
+      cotizacion,
       desc: $("desc").value.trim(),
       category: selCat,
       para: selCat === "compras" ? $("para").value : "",
@@ -786,6 +964,8 @@
     $("amount").value = "";
     $("desc").value = "";
     $("para").value = "";
+    $("cotiz").value = "";
+    syncCotiz();
     $("submitBtn").textContent = "Sellar gasto ◉";
     $("cancelEdit").hidden = true;
   }
@@ -797,6 +977,8 @@
     editingId = id;
     $("amount").value = Math.abs(e.amount);
     $("currency").value = e.currency;
+    syncCotiz();
+    $("cotiz").value = e.cotizacion != null ? e.cotizacion : rateOf(e.currency);
     $("desc").value = e.desc || "";
     $("date").value = e.date;
     selCat = e.category;
@@ -818,6 +1000,30 @@
     renderCats();
   });
 
+  // recalcula la cotización sugerida al cambiar de moneda
+  $("currency").addEventListener("change", syncCotiz);
+
+  // cambio de solapa
+  $("tabs").addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-tab]");
+    if (!b) return;
+    document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t === b));
+    const pd = b.dataset.tab === "pordia";
+    $("viewResumen").hidden = pd;
+    $("viewPorDia").hidden = !pd;
+  });
+
+  // filtros por categoría (checkbox)
+  $("pdFilters").addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-fcat]");
+    if (!b) return;
+    const id = b.dataset.fcat;
+    if (activeCats.has(id)) activeCats.delete(id); else activeCats.add(id);
+    renderPorDia();
+  });
+  $("pdAll").addEventListener("click", () => { activeCats = new Set(presentCats().map(c => c.id)); renderPorDia(); });
+  $("pdNone").addEventListener("click", () => { activeCats = new Set(); renderPorDia(); });
+
   $("list").addEventListener("click", (ev) => {
     const edit = ev.target.closest("[data-edit]");
     if (edit) { startEdit(edit.dataset.edit); return; }
@@ -835,8 +1041,12 @@
     const factor = rateOf(newBase); // valor de la nueva base en la base vieja
     // re-expresar todas las tasas respecto de la nueva base
     state.currencies = state.currencies.map(c => ({ code: c.code, rate: c.rate / factor }));
+    // re-expresar la cotización puntual de cada gasto
+    for (const e of state.expenses)
+      if (e.cotizacion != null) e.cotizacion = e.cotizacion / factor;
     state.trip.base = newBase;
     renderAll();
+    syncCotiz();
   });
 
   $("fxRows").addEventListener("input", (ev) => {
@@ -917,6 +1127,7 @@
   // fecha de hoy por defecto
   $("date").value = new Date().toISOString().slice(0, 10);
   renderPara();
+  syncCotiz();
 
   renderAll();
 })();
